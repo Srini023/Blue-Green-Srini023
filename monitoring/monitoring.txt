@@ -1,0 +1,111 @@
+0) Prereqs (one-time)
+Connect to your GKE cluster
+
+gcloud config set project srinisre023
+gcloud container clusters get-credentials bluegreen --zone us-central1-a
+kubectl get nodes
+
+Install Helm (if not already)
+Install Helm (if not already)
+helm version
+
+1) Install Prometheus + Grafana (kube-prometheus-stack)
+1.1 Create namespace
+kubectl create namespace monitoring
+
+1.2 Add Helm repo + install
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+Create the secret:
+kubectl -n monitoring create secret generic additional-scrape-configs \
+  --from-file=additional-scrape-configs.yaml
+
+Apply upgrade:
+helm upgrade kps prometheus-community/kube-prometheus-stack -n monitoring -f monitoring/kps-values.yaml
+
+Verify Prometheus picked it up:
+Verify Prometheus picked it up:
+kubectl -n monitoring port-forward svc/kps-kube-prometheus-stack-prometheus 9090:9090
+
+Open: http://localhost:9090 → Status → Targets
+You should see blackbox_https_srini23 UP.
+
+
+Apply:
+Apply:
+kubectl apply -f monitoring/alerts-srini23.yaml
+
+Check rules loaded:
+kubectl -n monitoring port-forward svc/kps-kube-prometheus-stack-prometheus 9090:9090
+
+5) Alert Notifications (Slack / Email) via Alertmanager
+Option A (Most common): Slack
+You create an Alertmanager config secret and tell the Helm chart to use it.
+5.1 Create Alertmanager config file
+
+Create secret (⚠️ secret name must match release naming — easiest use the one you reference in values):
+kubectl -n monitoring create secret generic alertmanager
+
+5.2 Update Helm values to use it
+Append to monitoring/kps-values.yaml
+
+Immediate verification (no Slack yet)
+Forward Alertmanager:
+
+kubectl -n monitoring port-forward svc/kps-kube-prometheus-stack-alertmanager 9093:9093
+
+Open: http://localhost:9093
+Once alerts fire, you’ll see them in the UI.
+
+If you want, paste your helm list -n monitoring + helm show values prometheus-community/kube-prometheus-stack | head output, and I’ll give you the exact values block to mount the Slack secret for your chart version with zero trial/error.
+
+6) Grafana Access + Dashboards
+6.1 Port-forward Grafana
+
+kubectl -n monitoring port-forward svc/kps-grafana 3000:80
+
+Open: http://localhost:3000
+Login:
+
+user: admin
+password: ChangeMeStrong123! (from values)
+
+Recommended dashboards
+Out of the box you get Kubernetes dashboards.
+For blackbox probing, you can add a blackbox dashboard later; but even without import, you can graph:
+
+probe_success
+probe_duration_seconds
+probe_http_status_code
+
+7) GKE-specific Alerts (Optional but very useful)
+If you want cluster health alerts too, add these:
+monitoring/gke-alerts.yaml
+
+Apply:
+kubectl apply -f monitoring/gke-alerts.yaml
+
+8) How this works with your “one domain at a time” rule
+✅ Your alerts always probe https://srini23.com
+So when you switch Cloudflare A record:
+
+GKE → GCE: monitoring still works
+GCE → GKE: monitoring still works
+
+No config changes needed.:
+
+
+Quick validation checklist (copy/paste)
+# targets
+kubectl -n monitoring port-forward svc/kps-kube-prometheus-stack-prometheus 9090:9090
+
+# grafana
+kubectl -n monitoring port-forward svc/kps-grafana 3000:80
+
+# alertmanager
+kubectl -n monitoring port-forward svc/kps-kube-prometheus-stack-alertmanager 9093:9093
+
+# test your endpoint
+curl -I https://srini23.com
+

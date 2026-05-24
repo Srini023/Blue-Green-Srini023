@@ -1,0 +1,25 @@
+grafana:
+  adminPassword: "ChangeMeStrong123!"
+  defaultDashboardsEnabled: true
+
+prometheus:
+  prometheusSpec:
+    retention: 7d
+    resources:
+      requests:
+        memory: 512Mi
+        cpu: 200m
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests:
+        memory: 256Mi
+        cpu: 100m
+
+alertmanager:
+  config:
+    global:
+      resolve_timeout: 5m        

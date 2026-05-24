@@ -1,0 +1,15 @@
+helm install kps prometheus-community/kube-prometheus-stack \
+  -n monitoring -f monitoring/kps-values.yaml
+
+Verify:
+Verify:Verify:
+kubectl -n monitoring get pods
+``
+
+2) Install Blackbox Exporter (Probe https://srini23.com)
+2.1 Install chart
+
+helm install blackbox prometheus-community/prometheus-blackbox-exporter -n monitoring
+kubectl -n monitoring get pods | grep blackbox
+
+

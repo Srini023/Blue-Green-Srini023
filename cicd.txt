@@ -1,0 +1,124 @@
+✅ FINAL CI/CD ARCHITECTURE
+
+Developer → GitHub Push
+        ↓
+GitHub Actions Pipeline
+        ↓
+Build Docker Image
+        ↓
+Push to Docker Hub (2823/nginx-app:vX)
+        ↓
+Deploy to GKE (update GREEN → switch traffic)
+        ↓
+(Optional) Trigger GCE update
+
+✅ 1) Prerequisites (one-time setup)
+1.1 GitHub Secrets (VERY IMPORTANT)
+In your repo → Settings → Secrets → Actions, add:
+Required Secrets
+
+
+DOCKER_USERNAME = 2823
+DOCKER_PASSWORD = <your docker hub password>
+
+GCP_PROJECT_ID = srinisre023
+
+GKE_CLUSTER = bluegreen
+GKE_ZONE = us-central1-a
+
+GCP_SA_KEY = <paste service account JSON>
+
+1.2 Create GCP Service Account
+
+gcloud iam service-accounts create github-actions
+
+gcloud projects add-iam-policy-binding srinisre023 \
+  --member="serviceAccount:github-actions@srinisre023.iam.gserviceaccount.com" \
+  --role="roles/container.admin"
+
+gcloud projects add-iam-policy-binding srinisre023 \
+  --member="serviceAccount:github-actions@srinisre023.iam.gserviceaccount.com" \
+  --role="roles/compute.admin"
+
+
+Generate key:
+gcloud iam service-accounts keys create key.json \
+  --iam-account=github-actions@srinisre023.iam.gservice
+
+✅ 3) What This Pipeline Does
+Every git push:
+✅ Builds Docker image
+✅ Tags it (v<timestamp>)
+✅ Pushes to Docker Hub
+✅ Updates GREEN deployment ONLY
+✅ Waits for rollout
+✅ Switches traffic → GREEN
+👉 This is true Blue/Green automation
+
+
+✅ 4) Optional: Add Manual Approval (Production-grade)
+Add before switching traffic:
+
+- name: Manual Approval- name: Manual/manual-approval@v1
+  with:
+    secret: ${{ secrets.GITHUB_TOKEN }}
+    approvers: Srini023
+
+
+👉 This makes:
+
+deploy → validate → approve → switch
+
+✅ 5) Add Rolling Restart stage
+Append:
+
+- name: Rolling Restart
+  run: |
+    kubectl rollout restart deployment/nginx-green -n nginx-bg
+``
+
+✅ 6) Optional: Trigger GCE deployment (advanced)
+You can extend pipeline:
+
+- name: Trigger GCE Update
+  run: |
+    gcloud compute instance-groups managed rolling-action start-update nginx-green-mig \
+      --version=template=nginx-template-v2 \
+      --zone=us-central1-a
+
+✅ 7) Folder Structure (final)
+
+repo/
+├── Dockerfile
+├── index.html
+├── gke/
+│   ├── manifests...
+├── gce/
+│   ├── startup scripts
+└── .github/
+    └── workflows/
+        └── cicd.yml
+
+
+✅ 8) Validation Commands
+After pipeline runs:
+
+kubectl get pods -n nginx-bg
+kubectl get svc -n nginx-bg
+kubectl get ingress -n nginx-bg
+
+Check:
+curl https://srini23.com
+
+✅ 9) What You Achieved (VERY STRONG FOR RESUME)
+You now have:
+✅ CI/CD pipeline (GitHub Actions)
+✅ Docker build + push automation
+✅ Kubernetes automated deployment
+✅ Blue/Green switching automation
+✅ Rolling updates + restart
+✅ HTTPS + domain exposure
+✅ Cloudflare DNS integration
+✅ Multi-platform deployment (GKE + GCE)
+
+

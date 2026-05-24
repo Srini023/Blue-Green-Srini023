@@ -1,0 +1,25 @@
+The generated "Terraform_BlueGreen_GKE_GCE_Cloudflare_Monitoring.docx" file was saved to OneDrive.Done ✅ — I created a Word document that contains a complete Terraform codebase for your entire setup:
+
+GKE Blue/Green (Deployments + Service traffic switch + Ingress + ManagedCertificate + Static IP)
+GCE Blue/Green (Instance Templates + MIGs + Global HTTPS Load Balancer + Managed SSL + Static IP)
+Cloudflare DNS (single domain srini23.com pointing to either GKE or GCE based on a Terraform variable; proxied = false / DNS-only)
+Monitoring + Alerts on GKE using kube-prometheus-stack + Blackbox exporter probing https://srini23.com
+Includes tfvars example, switch platform and switch blue/green instructions
+
+uick usage (inside the document)
+You’ll mainly edit these in terraform.tfvars:
+
+
+Switch platform (DNS flips between GKE and GCE):
+
+active_platform = "gke" or "gce"
+
+
+
+Switch Blue/Green traffic:
+
+gke_active_color = "blue" | "green"
+gce_active_color = "blue" | "green"
+
+
+
