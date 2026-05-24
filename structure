@@ -1,0 +1,12 @@
+nginx-bluegreen-gcp/
+├── gke/
+│   ├── 00-namespace.yaml
+│   ├── 01-blue-deploy.yaml
+│   ├── 02-green-deploy.yaml
+│   ├── 03-service.yaml
+│   ├── 04-ingress.yaml
+│   └── 05-managed-cert.yaml
+└── gce/
+    ├── startup-v1.sh
+    ├── startup-v2.sh
+    └── commands.sh
