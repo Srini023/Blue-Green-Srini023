@@ -1,0 +1,17 @@
+1) Prerequisites (Both GKE + GCE)
+1.1 Domain
+Decide a domain, e.g.:
+
+app.example.com
+
+You will later create DNS A record pointing to:
+
+GKE Ingress IP for GKE flow
+HTTPS LB IP for GCE flow
+
+
+If you want both simultaneously, use subdomains:
+
+
+gke.app.example.com
+gce.app.example.com
