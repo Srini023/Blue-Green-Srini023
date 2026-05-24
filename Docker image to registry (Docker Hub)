@@ -1,0 +1,5 @@
+docker build -t <dockerhub_user>/nginx-app:v1 .
+docker push <dockerhub_user>/nginx-app:v1
+
+docker build -t <dockerhub_user>/nginx-app:v2 .
+docker push <dockerhub_user>/nginx-app:v2
