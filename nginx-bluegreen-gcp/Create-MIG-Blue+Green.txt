@@ -1,0 +1,9 @@
+gcloud compute instance-groups managed create nginx-blue-mig \
+  --template=nginx-template-v1 \
+  --size=3 \
+  --zone=<ZONE>
+
+gcloud compute instance-groups managed create nginx-green-mig \
+  --template=nginx-template-v2 \
+  --size=3 \
+  --zone=<ZONE>

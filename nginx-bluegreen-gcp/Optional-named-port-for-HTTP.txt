@@ -1,0 +1,5 @@
+gcloud compute instance-groups managed set-named-ports nginx-blue-mig \
+  --named-ports http:80 --zone=<ZONE>
+
+gcloud compute instance-groups managed set-named-ports nginx-green-mig \
+  --named-ports http:80 --zone=<ZONE>

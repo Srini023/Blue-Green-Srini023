@@ -1,0 +1,19 @@
+Switch traffic instantly by patching the Service selector:
+
+kubectl -n nginx-bg patch svc nginx-svc \
+  -p '{"spec":{"selector":{"app":"nginx-app","color":"green"}}}'
+
+Rollback:
+
+kubectl -n nginx-bg patch svc nginx-svc \
+  -p '{"spec":{"selector":{"app":"nginx-app","color":"blue"}}}'
+
+A6) Rolling update (e.g., update green from v2 → v3)
+
+kubectl -n nginx-bg set image deployment/nginx-green nginx=<dockerhub_user>/nginx-app:v3
+kubectl -n nginx-bg rollout status deployment/nginx-green
+
+A7) Rolling restart (later step)
+
+kubectl -n nginx-bg rollout restart deployment/nginx-green
+kubectl -n nginx-bg rollout status deployment/nginx-green

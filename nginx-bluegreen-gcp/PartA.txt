@@ -1,0 +1,62 @@
+PART A — GKE (Blue/Green + HTTPS + Domain + Rolling Update + Rolling Restart)
+A0) Connect to cluster (example)
+
+gcloud container clusters get-credentials <cluster-name> --zone <zone>
+kubectl get nodes
+
+PART A — GKE (Blue/Green + HTTPS Ingress + Managed Cert + Rolling Update + Rolling Restart)
+
+GKE Ingress automatically provisions a Google Cloud HTTP(S) Load Balancer to expose HTTP/HTTPS traffic. 
+To use Google-managed certs, you create a ManagedCertificate and attach it to the Ingress using the networking.gke.io/managed-certificates annotation
+
+A1) Reserve a static global IP for GKE Ingress (recommended)
+gcloud compute addresses create gke-nginx-ip --global
+GKE_INGRESS_IP=$(gcloud compute addresses describe gke-nginx-ip --global --format="get(address)")
+echo $GKE_INGRESS_IP
+
+A3) Deploy to GKE
+gcloud container clusters get-credentials bluegreen --zone us-central1-a
+
+kubf gke/01-blue-deploy.yamlkubectl apply -f gke/00-namespace.yaml
+kubectl apply -f gke/02-green-deploy.yaml
+kubectl apply -f gke/03-service.yaml
+kubectl apply -f gke/05-managed-cert.yaml
+kubectl apply -f gke/04-ingress.yaml
+
+kubectl -n nginx-bg get pods
+kubectl -n nginx-bg get ingress
+kubectl -n nginx-bg describe managedcertificate nginx-cert
+
+
+A4) DNS for GKE
+Create DNS record:
+
+A record: gke.srini23.com → $GKE_INGRESS_IP
+
+Then wait for managed cert: it will move to Active once DNS is visible.
+
+curl -I https://gke.srini23.com
+
+A5) Blue → Green cutover (instant)
+Traffic switching is done by changing Service selectors (labels/selectors model).
+
+kubectl -n nginx-bg patch svc nginx-svc \
+  -p '{"spec":{"selector":{"app":"nginx-app","color":"green"}}}'
+
+Rollback:
+
+kubectl -n nginx-bg patch svc nginx-svc \
+  -p '{"spec":{"selector":{"app":"nginx-app","color":"blue"}}}'
+
+A6) Rolling update (example: update GREEN to v3)
+
+kubectl -n nginx-bg set image deployment/nginx-green nginx=2823/nginx-app:v3
+kubectl -n nginx-bg rollout status deployment/nginx-green
+
+A7) Rolling restart (later step)
+Kubernetes supports rolling restart using kubectl rollout restart.
+
+kubectl -n nginx-bg rollout restart deployment/nginx-green
+kubectl -n nginx-bg rollout status deployment/nginx-green
+
+

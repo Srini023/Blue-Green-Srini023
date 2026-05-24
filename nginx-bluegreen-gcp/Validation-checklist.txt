@@ -1,0 +1,12 @@
+GKE
+
+kubectl -n nginx-bg get pods -o wide
+kubectl -n nginx-bg get ingress
+kubectl -n nginx-bg describe managedcertificate nginx-cert
+curl -I https://gke.srini23.com
+
+GCE
+
+gcloud compute backend-services get-health nginx-backend --global
+gcloud compute ssl-certificates describe nginx-ssl --global
+curl -I https://gce.srini23.com

@@ -1,0 +1,4 @@
+gcloud compute firewall-rules create allow-lb-to-nginx \
+  --allow tcp:80 \
+  --target-tags nginx-http \
+  --source-ranges 0.0.0.0/0

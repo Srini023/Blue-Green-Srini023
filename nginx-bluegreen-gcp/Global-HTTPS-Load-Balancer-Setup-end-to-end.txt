@@ -1,0 +1,48 @@
+1) Reserve a global static IP
+
+gcloud compute addresses create nginx-lb-ip --global
+gcloud compute addresses describe nginx-lb-ip --global --format="get(address)"
+
+2) Health Check
+
+gcloud compute health-checks create http nginx-hc --port 80 --request-path /
+
+3) Backend Service
+
+gcloud compute backend-services create nginx-backend \
+  --protocol=HTTP \
+  --health-checks=nginx-hc \
+  --global
+
+4) Add BLUE backend to backend service (start live with Blue)
+
+gcloud compute backend-services add-backend nginx-backend \
+  --instance-group=nginx-blue-mig \
+  --instance-group-zone=<ZONE> \
+  --global
+
+5) URL map
+
+gcloud compute url-maps create nginx-urlmap --default-service nginx-backend
+
+6) Managed SSL Certificate
+
+gcloud compute ssl-certificates create nginx-ssl \
+  --domains=gce.app.example.com \
+  --global
+
+7) Target HTTPS Proxy
+
+gcloud compute target-https-proxies create nginx-https-proxy \
+  --ssl-certificates=nginx-ssl \
+  --url-map=nginx-urlmap
+
+8) Forwarding Rule (public listener)
+
+gcloud compute forwarding-rules create nginx-https-fr \
+  --address=nginx-lb-ip \
+  --global \
+  --target-https-proxy=nginx-https-proxy \
+  --ports=443
+
+

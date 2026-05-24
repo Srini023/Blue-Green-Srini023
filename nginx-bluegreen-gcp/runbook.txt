@@ -1,0 +1,16 @@
+2) Release Runbook (what you’ll do in real life)
+✅ GKE Release (blue/green)
+
+Deploy/Update green (rolling update)
+Validate green with curl
+Flip service selector → green
+(Optional) restart rollout if needed
+
+✅ GCE Release (blue/green)
+
+Build/push container
+Create new instance template
+Rolling update green MIG
+Add green backend to LB
+Remove blue backend (cutover)
+Use rolling restart/replace when required`

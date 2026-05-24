@@ -1,0 +1,13 @@
+Add GREEN backend first (warm up)
+gcloud compute backend-services add-backend nginx-backend \
+  --instance-group=nginx-green-mig \
+  --instance-group-zone=<ZONE> \
+  --global
+
+Then remove BLUE backend (cutover)
+gcloud compute backend-services remove-backend nginx-backend \
+  --instance-group=nginx-blue-mig \
+  --instance-group-zone=<ZONE> \
+  --global
+
+Rollback = add blue again and remove green.

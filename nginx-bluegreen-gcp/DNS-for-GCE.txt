@@ -1,0 +1,12 @@
+Create DNS record:
+
+A record:
+
+gce.app.example.com → <LB_IP>
+
+Wait until SSL is ACTIVE:
+gcloud compute ssl-certificates describe nginx-ssl --global
+
+Test:
+curl -I https://gce.app.example.com
+

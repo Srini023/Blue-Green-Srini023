@@ -1,0 +1,9 @@
+gcloud compute instance-templates create nginx-template-v1 \
+  --machine-type=e2-medium \
+  --metadata-from-file startup-script=gce/startup-v1.sh \
+  --tags=nginx-http
+
+gcloud compute instance-templates create nginx-template-v2 \
+  --machine-type=e2-medium \
+  --metadata-from-file startup-script=gce/startup-v2.sh \
+  --tags=nginx-http

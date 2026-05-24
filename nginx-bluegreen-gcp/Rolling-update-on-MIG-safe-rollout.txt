@@ -1,0 +1,13 @@
+When you release a new version, you normally:
+
+create a new template
+apply rolling update to MIG
+
+Example update Green MIG to new template:
+gcloud compute instance-groups managed rolling-action start-update nginx-green-mig \
+  --version=template=nginx-template-v2 \
+  --max-surge=1 \
+  --max-unavailable=0 \
+  --zone=<ZONE>
+
+

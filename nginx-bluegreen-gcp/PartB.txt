@@ -1,0 +1,175 @@
+PART B — GCE (MIG Blue/Green + Global HTTPS LB + Domain + Rolling Update + Rolling Restart)
+This is the classic production approach:
+✅ Two MIGs (blue, green)
+✅ Global HTTPS LB in front
+✅ Blue/Green flip by switching backend
+✅ Rolling update by updating MIG template gradually
+✅ Rolling restart/replace using rolling actions
+
+B0) Variables to set once
+Choose:
+
+PROJECT
+ZONE (example: us-central1-a)
+REGION (example: us-central1)
+DOMAIN: gce.app.example.com
+
+PART B — GCE (Blue/Green MIGs + Global HTTPS Load Balancer + Rolling Update + Rolling Restart)
+We’ll do:
+
+2 MIGs: nginx-blue-mig, nginx-green-mig
+Global external HTTPS LB
+Google health checks + firewall allow from health check ranges
+Switch by adding/removing backends
+Rolling update with rolling-action start-update [docs.cloud...google.com]
+Rolling restart/replace with rolling-action restart/replace [docs.cloud...google.com], [docs.cloud...google.com]
+
+B1) Firewall rule (best practice: allow from LB/health-check IP ranges)
+Google documents that health checks (and in many cases GFE proxies) use these source ranges: 35.191.0.0/16 and 130.211.0.0/22
+
+
+gcloud compute firewall-rules create allow-lb-hc-to-nginx \
+  --allow tcp:80 \
+  --target-tags nginx-http \
+  --source-ranges 35.191.0.0/16,130.211.0.0
+
+Create templates
+gcloud compute instance-templates create nginx-template-v1 \
+  --machine-type=e2-medium \
+  --metadata-from-file startup-script=gce/startup-v1.sh \
+  --tags=nginx-http
+
+gcloud compute instance-templates create nginx-template-v2 \
+  --machine-type=e2-medium \
+  --metadata-from-file startup-script=gce/startup-v2.sh \
+  --tags=nginx-http
+
+
+B3) Create Blue/Green MIGs (zonal)
+
+gcloud compute instance-groups managed create nginx-blue-mig \
+  --template=nginx-template-v1 \
+  --size=3 \
+  --zone=us-central1-a
+
+gcloud compute instance-groups managed create nginx-green-mig \
+  --template=nginx-template-v2 \
+  --size=3 \
+  --zone=us-central1-a
+
+Set named ports (required for HTTP(S) LB with instance groups):
+
+gcloud compute instance-groups managed set-named-ports nginx-blue-mig \
+  --named-ports http:80 --zone=us-central1-a
+
+gcloud compute instance-groups managed set-named-ports nginx-green-mig \
+  --named-ports http:80 --zone=us-central1-a
+
+
+B4) Create Global HTTPS Load Balancer (with static IP + managed cert)
+1) Reserve global static IP
+
+gcloud compute addresses create gce-nginx-ip --global
+GCE_LB_IP=$(gcloud compute addresses describe gce-nginx-ip --global --format="get(address)")
+echo $GCE_LB_IP
+
+2) Health check
+gcloud compute health-checks create http nginx-hc --port 80 --request-path /
+
+3) Backend service
+gcloud compute backend-services create nginx-backend \
+  --protocol=HTTP \
+  --health-checks=nginx-hc \
+  --global
+
+4) Add BLUE backend to backend service (start live with Blue)
+gcloud compute backend-services add-backend nginx-backend \
+  --instance-group=nginx-blue-mig \
+  --instance-group-zone=us-central1-a \
+  --global
+
+5) URL map
+gcloud compute url-maps create nginx-urlmap --default-service nginx-backend
+
+6) Google-managed SSL certificate (Compute SSL cert)
+gcloud compute ssl-certificates create supports managed certs using --domains.
+gcloud compute ssl-certificates create nginx-ssl \
+  --domains=gce.srini23.com \
+  --global
+
+7) Target HTTPS proxy
+gcloud compute target-https-proxies create nginx-https-proxy \
+  --ssl-certificates=nginx-ssl \
+  --url-map=nginx-urlmap
+
+8) Global forwarding rule (public 443)
+gcloud compute forwarding-rules create nginx-https-fr \
+  --address=gce-nginx-ip \
+  --global \
+  --target-https-proxy=nginx-https-proxy \
+  --ports=443
+
+B5) DNS for GCE
+Create DNS record:
+
+A record: gce.srini23.com → $GCE_LB_IP
+
+Check cert status:
+
+gcloud compute ssl-certificates describe nginx-ssl --global
+
+It becomes ACTIVE once DNS is visible. (Can take some time.)
+curl -I https://gce.srini23.com
+
+B6) Blue → Green cutover (GCE)
+Add green first:
+gcloud compute backend-services add-backend nginx-backend \
+  --instance-group=nginx-green-mig \
+  --instance-group-zone=us-central1-a \
+  --global
+
+Then remove blue:
+gcloud compute backend-services remove-backend nginx-backend \
+  --instance-group=nginx-blue-mig \
+  --instance-group-zone=us-central1-a \
+  --global
+
+The remove-backend command is the standard way to detach a backend from a backend service. [docs.cloud...google.com]
+
+Rollback = add blue again and remove green
+
+B7) Rolling update (MIG) — safe rollout
+rolling-action start-update is the standard CLI for rolling updates. [docs.cloud...google.com]
+Example: update GREEN MIG to a new template:
+
+gcloud compute instance-templates create nginx-template-v3 \
+  --machine-type=e2-medium \
+  --metadata-from-file startup-script=gce/startup-v2.sh \
+  --tags=nginx-http
+
+Then roll:
+
+gcloud compute instance-groups managed rolling-action start-update nginx-green-mig \
+  --version=template=nginx-template-v3 \
+  --max-surge=1 \
+  --max-unavailable=0 \
+  --zone=us-central1-a
+
+B8) Rolling restart / rolling replace (later step)
+Both are supported as rolling actions:
+
+rolling-action restart [docs.cloud...google.com]
+rolling-action replace
+
+# Rolling restart
+gcloud compute instance-groups managed rolling-action restart nginx-green-mig \
+  --zone=us-central1-a
+
+# Rolling replace (recreate instances gradually)
+gcloud compute instance-groups managed rolling-action replace nginx-green-mig \
+  --max-surge=1 \
+  --max-unavailable=0 \
+  --zone=us-central1-a
+
+
+

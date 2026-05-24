@@ -1,0 +1,36 @@
+A3) Apply everything
+
+kubectl apply -f gke/00-namespace.yaml
+kubectl apply -f gke/01-blue-deploy.yaml
+kubectl apply -f gke/02-green-deploy.yaml
+kubectl apply -f gke/03-service.yaml
+kubectl apply -f gke/05-managed-cert.yaml
+kubectl apply -f gke/04-ingress.yaml
+
+Check:
+
+
+kubectl -n nginx-bg get pods
+kubectl -n nginx-bg get svc
+kubectl -n nginx-bg get ingress
+kubectl -n nginx-bg describe managedcertificate nginx-cert
+
+
+A4) DNS (IMPORTANT)
+
+Get the Ingress external IP:
+kubectl -n nginx-bg get ingress nginx-ingress
+
+Create DNS record:
+
+A record
+
+gke.app.example.com → <INGRESS_EXTERNAL_IP>
+
+kubectl -n nginx-bg describe managedcertificate nginx-cert
+
+Test:
+Test:
+curl -I https://gke.app.example.com
+
+
