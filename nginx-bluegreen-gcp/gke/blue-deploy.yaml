@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
       - name: nginx
-        image: 2823/nginx-app:v1
+        image: 2823/my-nginx-app:v3
         ports:
         - containerPort: 80
         readinessProbe:

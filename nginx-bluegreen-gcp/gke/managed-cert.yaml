@@ -5,4 +5,4 @@ metadata:
   namespace: nginx-bg
 spec:
   domains:
-    - gke.srini23.com
+    - srini23.com
