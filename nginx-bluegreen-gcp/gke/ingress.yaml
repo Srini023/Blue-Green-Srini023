@@ -4,9 +4,11 @@ metadata:
   name: nginx-ingress-v2
   namespace: nginx-bg
   annotations:
+    networking.gke.io/managed-certificates: "nginx-cert"
     kubernetes.io/ingress.allow-http: "true"
+    kubernetes.io/ingress.allow-https-redirect: "true"
 spec:
-  ingressClassName: gce
+  ingressClassName: gce-17-glb
   rules:
   - host: srini23.com
     http:
